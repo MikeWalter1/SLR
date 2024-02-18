@@ -9,9 +9,18 @@ contract AddProject {
 
     //definition of event, will be triggered when new project is added
     event ProjectAdded(uint id, string name, string state, string description, uint amount, uint startDate, uint endDate);
+    
+    // MW: Onboarding -> PO is not approved inside the DAO yet. Needs a guaranteer. 
+    // MW: Voting -> Voting open for this project
+    // MW: Started -> Voting completed, project has started and is awaiting its end
+    // MW: Ended -> Project livetime has ended, and is awaiting an approving of the donators
+    // MW: Completed -> Project has been successfully completed. PO can create a new project
+    // MW: Failed -> Donators didn't confirm a successful completion. PO cannot create a new project
+    enum ProjectState {Onboarding, Voting, Started, Ended, Completed, Failed}
 
     // timestamps have to be uint256, not able to safe gas in struct
     struct Project {
+        address owner;
         string name;
         string state;
         string description;
@@ -19,7 +28,10 @@ contract AddProject {
         uint startDate;
         uint endDate;
         string mail;
+        ProjectState projectState;
     }
+
+    
 
     //Array which contains all projects, saved on the blockchain
     Project[] public projects;
@@ -42,12 +54,17 @@ contract AddProject {
         //create a new project, otherwise user cannot create new project
         //MW: How are projects deleted again to allow a new creation later on? Or does every project has it's own wallet? 
         //MW: If so, can we link wallets to each other to define the one project owner later on?
-        require(ownerProjectCount[msg.sender] == 0);
+        //MW: obsolete as replaced with line below // require(ownerProjectCount[msg.sender] == 0);
+        require(_canOwnerCreateNewProject(msg.sender) == true);
         //current timestamp as startDate
         uint256 startDate = block.timestamp;
         uint256 endDate = startDate + 12 weeks;
         //add new project to array
-        projects.push(Project(_name, _state, _description, _amount, startDate, endDate, _mail));
+        //MW: If owner is onboarded already, start in state "Voting" otherwise, start a project in "Onboarding"
+        if (_isOwnerOnboarded(msg.sender))
+            projects.push(Project(msg.sender, _name, _state, _description, _amount, startDate, endDate, _mail, ProjectState.Voting));
+        else
+            projects.push(Project(msg.sender, _name, _state, _description, _amount, startDate, endDate, _mail, ProjectState.Onboarding));
         //add mapping between project and wallet
         projectToOwner[projects.length-1] = msg.sender;
         ownerToProject[msg.sender] = projects.length-1;
@@ -55,6 +72,27 @@ contract AddProject {
         //emit event "ProjectAdded"
         emit ProjectAdded(projects.length-1, _name, _state, _description, _amount, startDate, endDate);
     } 
+
+    // MW: Rule -> Owner can only have one open project at a time.
+    // MW: iterate through all projects and find whether Owner has an open project that is not "Completed". 
+    function _canOwnerCreateNewProject(address _owner) internal view returns (bool){
+        for (uint i=0; i<projects.length; i++) {
+            if(projects[i].owner == _owner ){
+                if(projects[i].projectState!=ProjectState.Completed)
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    // MW: Checks whether owner has an project already that left the onboarding process and is thereby onboarded
+    function _isOwnerOnboarded(address _owner) internal view returns(bool){
+        for (uint i=0; i<projects.length; i++) {
+            if(projects[i].owner == _owner && projects[i].projectState != ProjectState.Onboarding)
+                return true;
+        }
+        return false;
+    }
 
     /// @notice get the number of projects currently saved on the blockchain
     /// @return length the number of projects
