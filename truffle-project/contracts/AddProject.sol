@@ -40,6 +40,8 @@ contract AddProject {
     function addProject(string memory _name, string memory _state, string memory _description, uint32 _amount, string memory _mail) public {
         //check whether user(address) has already created a project, if zero, then user can
         //create a new project, otherwise user cannot create new project
+        //MW: How are projects deleted again to allow a new creation later on? Or does every project has it's own wallet? 
+        //MW: If so, can we link wallets to each other to define the one project owner later on?
         require(ownerProjectCount[msg.sender] == 0);
         //current timestamp as startDate
         uint256 startDate = block.timestamp;

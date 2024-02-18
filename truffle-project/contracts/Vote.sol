@@ -9,6 +9,7 @@ import "./Donate.sol";
 /// @dev uses the userHasVoted mapping from Donate.sol
 contract Vote is Donate {
     //mapping if a user has voted for a project, saved  on the blockchain
+    // MW: user can only vote once. in a lifetime! needs a different implementation.
     mapping(address => uint) public userHasVoted;
 
     struct VoteForProject {

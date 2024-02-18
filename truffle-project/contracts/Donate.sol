@@ -22,6 +22,7 @@ contract Donate {
     /// @notice Donate Ether to SeaLevelRaise
     receive() external payable{
         //donations of less than 1 finney will be rejected 
+        //MW: this contract will be in the blockchain for ever. Maybe 1 finney becomes a lot of money one day and then this contract will work worse.
         if(msg.value < 1e15) {
             revert();
         }
@@ -68,12 +69,14 @@ contract Donate {
 
     /// @notice Add Mail to a Donater if mail was set in frontend
     /// @param _mail Mail of the User
+    // MW: maybe needs a function to change email adress?
     function _addMailToDonater(string memory _mail) internal {
         uint id= idToOwner[msg.sender];
         donaters[id].mail = _mail;
     }
 
-    /// @notice Get Number of Donaters 
+    /// @notice Get Number of Donaters
+    // MW: shouldn't donaters.length already give the return value? unless its suppose to uniquely count donors, but this code is not implemented beneath
     function getNumberOfDonaters() public view returns(uint){
         uint numberOfUsers;
         for(uint i=0; i<donaters.length; i++) {
