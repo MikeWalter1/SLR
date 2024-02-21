@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.4.22 <0.9.0;
+import "./AddProject.sol";
 
 /// @title Donate Ether to SeaLevelRaise
 /// @author Josua Benz
@@ -10,7 +11,11 @@ contract Donate {
    struct Donater{
     string mail;
     uint donatedAmount;
+    //MW: added spendable voting tokens that reflect the contribution power of a donator.
+    uint votingTokens;
    }
+
+
 
     event DonaterAdded(uint id,string mail, uint donatedAmount);
     event DonationAdded(uint id,string mail, uint amount);
@@ -54,16 +59,29 @@ contract Donate {
             }
             uint id = idToOwner[msg.sender];
             donaters[id].donatedAmount += _amount;
+            //MW: giving the Donators voting coins equal to the amount they donated
+            donaters[id].votingTokens += _amount;
             uint amount = donaters[id].donatedAmount;
             emit DonationAdded(id, _mail, amount);
         }
+    }
+
+    function removeDonatorToken(uint _idDonator, uint _amount) public {
+        donaters[_idDonator].votingTokens-=_amount;
+    }
+
+    // MW: add withdraw money function for Donators
+    function withdrawMoney(uint _amount) public {
+        // !needs to send eth to pay for fee
+        // remove vote coins
+        // transfer money to wallet
     }
 
     /// @notice Create new Donater and add it to the array
     /// @param _amount Amount the User has donated
     function _createDonater(uint _amount) internal {
         string memory mail = '';
-        donaters.push(Donater(mail, _amount));
+        donaters.push(Donater(mail, _amount, _amount));
         uint id = donaters.length -1;
         idToOwner[msg.sender] = id;
         emit DonaterAdded(id, mail, _amount);
@@ -108,4 +126,17 @@ contract Donate {
         }
     }
 
+    //MW: added
+    function _hasDonatorVotingTokens(uint _votingTokens) internal view returns (bool){
+        uint id = idToOwner[msg.sender];
+        return(_votingTokens>=donaters[id].votingTokens);
+    }
+
+    //MW: added
+   // function spendVotingTokensOnProject(uint _projectId, uint _amountVotingTokens) public view {
+   //     uint id = idToOwner[msg.sender];
+   //     Donater memory donator = donaters[id];
+   //     if(_hasDonatorVotingTokens(_amountVotingTokens)==true){
+   //     }
+   // }
 }

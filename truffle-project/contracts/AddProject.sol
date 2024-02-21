@@ -18,6 +18,11 @@ contract AddProject {
     // MW: Failed -> Donators didn't confirm a successful completion. PO cannot create a new project
     enum ProjectState {Onboarding, Voting, Started, Ended, Completed, Failed}
 
+   struct Donation{
+    address owner;
+    uint donatedMoney;
+   }
+
     // timestamps have to be uint256, not able to safe gas in struct
     struct Project {
         address owner;
@@ -25,13 +30,12 @@ contract AddProject {
         string state;
         string description;
         uint32 amount;
+        uint32 votingTokens;
         uint startDate;
         uint endDate;
         string mail;
         ProjectState projectState;
     }
-
-    
 
     //Array which contains all projects, saved on the blockchain
     Project[] public projects;
@@ -40,7 +44,6 @@ contract AddProject {
     mapping (uint => address) public projectToOwner;
     //Mapping the address of an owner to the ID of the project
     mapping(address => uint) public ownerToProject;
-
     //Mapping of the count of how many project the person already has created
     mapping (address => uint) ownerProjectCount;
 
@@ -55,16 +58,16 @@ contract AddProject {
         //MW: How are projects deleted again to allow a new creation later on? Or does every project has it's own wallet? 
         //MW: If so, can we link wallets to each other to define the one project owner later on?
         //MW: obsolete as replaced with line below // require(ownerProjectCount[msg.sender] == 0);
-        require(_canOwnerCreateNewProject(msg.sender) == true);
+        require(_canOwnerCreateNewProject(msg.sender) == true, "You already have one project in progress.");
         //current timestamp as startDate
         uint256 startDate = block.timestamp;
         uint256 endDate = startDate + 12 weeks;
         //add new project to array
         //MW: If owner is onboarded already, start in state "Voting" otherwise, start a project in "Onboarding"
         if (_isOwnerOnboarded(msg.sender))
-            projects.push(Project(msg.sender, _name, _state, _description, _amount, startDate, endDate, _mail, ProjectState.Voting));
+            projects.push(Project(msg.sender, _name, _state, _description, _amount, 0, startDate, endDate, _mail, ProjectState.Voting));
         else
-            projects.push(Project(msg.sender, _name, _state, _description, _amount, startDate, endDate, _mail, ProjectState.Onboarding));
+            projects.push(Project(msg.sender, _name, _state, _description, _amount, 0, startDate, endDate, _mail, ProjectState.Onboarding));
         //add mapping between project and wallet
         projectToOwner[projects.length-1] = msg.sender;
         ownerToProject[msg.sender] = projects.length-1;
@@ -94,6 +97,19 @@ contract AddProject {
         return false;
     }
 
+    function _startProject(uint id) internal {
+        projects[id].projectState = ProjectState.Started;
+    }
+
+    function _endProject(uint id) internal {
+        projects[id].projectState = ProjectState.Ended;
+    }
+
+    function _startOnboardingProject(uint id) internal {
+        projects[id].projectState = ProjectState.Onboarding;
+    }    
+
+    // Info functions 
     /// @notice get the number of projects currently saved on the blockchain
     /// @return length the number of projects
     function getNumberOfProjects() public view returns(uint) {

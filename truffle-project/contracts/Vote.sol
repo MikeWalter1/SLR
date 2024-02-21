@@ -15,6 +15,7 @@ contract Vote is Donate {
     struct VoteForProject {
         address user;
         uint projectId;
+        uint votingTokens;
     }
     //list with all the votes, saved  on the blockchain
     VoteForProject[] public votes;
@@ -22,16 +23,27 @@ contract Vote is Donate {
     /// @notice Vote for a project in SeaLevelRaise. The user is not allowed to vote more than one time and only if they have donated.
     /// @dev uses userHasDonated from Contract Donate.sol
     /// @param _projectId The ID of the Project the user wants to vote for.
-    function voteForProject(uint _projectId) public {
+    function voteForProject(uint _projectId, uint _amountVotingTokens) public {
+        //MW: check whether donator has enough tokens
+        //MW: todo check whether it even is a donator 
+        require(_hasDonatorVotingTokens(_amountVotingTokens));
         //the user is required to have donated and to not have voted already
         require(userHasDonated[msg.sender] == 1);
         require(userHasVoted[msg.sender] != 1);
-
+        spendVotingTokensOnProject(_projectId, _amountVotingTokens);
         //add this vote to the list of votes
-        votes.push(VoteForProject(msg.sender, _projectId));
+        votes.push(VoteForProject(msg.sender, _projectId, _amountVotingTokens));
 
         //mapping, that this user has voted
         userHasVoted[msg.sender] = 1;
+    }
+
+        //MW: added
+    function spendVotingTokensOnProject(uint _projectId, uint _amountVotingTokens) public {
+        uint id = idToOwner[msg.sender];
+        if(_hasDonatorVotingTokens(_amountVotingTokens)==true) {
+            removeDonatorToken(_projectId, _amountVotingTokens);
+        }
     }
 
     /// @notice Get the amount of votes of one project
